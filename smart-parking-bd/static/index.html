@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="bn" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Parking BD</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <!-- ===== এখন Python (FastAPI) ব্যাকএন্ড API কল করা হয় সরাসরি app.js থেকে ===== -->
+</head>
+<body>
+
+<!-- SPLASH SCREEN -->
+<div id="splash" class="splash">
+  <div class="splash-inner">
+    <div class="splash-logo">🅿️</div>
+    <div class="splash-brand">Smart Parking BD</div>
+    <div class="splash-bar"><div class="splash-fill"></div></div>
+    <div class="splash-text" id="splash-text">ক্লাউড সার্ভারে সংযোগ হচ্ছে...</div>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand" onclick="showSection('home')">
+    <span class="nav-logo">🅿️</span>
+    <div class="nav-brand-text">
+      <span class="nav-title">Smart Parking</span>
+      <span class="nav-sub">Cloud Sync Edition</span>
+    </div>
+  </div>
+  <div class="nav-links" id="nav-links">
+    <a href="#" onclick="showSection('home')" data-section="home"><span class="nav-link-icon">🏠</span><span>হোম</span></a>
+    <a href="#" onclick="showSection('booking')" data-section="booking"><span class="nav-link-icon">📅</span><span>বুকিং</span></a>
+    <a href="#" onclick="showSection('my-booking')" data-section="my-booking"><span class="nav-link-icon">🎫</span><span>আমার বুকিং</span></a>
+    <a href="#" onclick="showSection('realtime')" data-section="realtime"><span class="nav-link-icon">📡</span><span>লাইভ ম্যাপ</span></a>
+    <a href="#" onclick="showSection('admin')" data-section="admin"><span class="nav-link-icon">⚙️</span><span>অ্যাডমিন</span></a>
+  </div>
+  <div class="nav-right">
+    <span class="sync-indicator" id="sync-status"><span class="sync-dot"></span>সংযোগ হচ্ছে</span>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle Theme">🌙</button>
+    <div id="nav-user"><button class="btn-login-nav" onclick="showSection('login')">লগইন</button></div>
+    <button class="hamburger" onclick="toggleMobileMenu()" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<!-- HOME SECTION -->
+<section id="home" class="section active">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-badge pulse"><span class="live-dot"></span>ক্লাউড সিঙ্ক চালু</div>
+      <h1 class="hero-title"><span class="hero-emoji">🅿️</span> স্মার্ট কার পার্কিং <span class="hero-highlight">BD</span></h1>
+      <p class="hero-sub">AI ফেস ভেরিফিকেশন • রিয়েল-টাইম স্লট • মোবাইল পেমেন্ট • মাল্টি-ডিভাইস সিঙ্ক</p>
+      <div class="hero-stats">
+        <div class="stat-box glass"><div class="stat-icon-wrap">🟢</div><span class="stat-num" id="available-count">0</span><span class="stat-label">খালি স্লট</span></div>
+        <div class="stat-box glass"><div class="stat-icon-wrap">🔴</div><span class="stat-num" id="booked-count">0</span><span class="stat-label">বুক্ড</span></div>
+        <div class="stat-box glass"><div class="stat-icon-wrap">🅿️</div><span class="stat-num" id="total-slots-count">12</span><span class="stat-label">মোট স্লট</span></div>
+        <div class="stat-box glass"><div class="stat-icon-wrap">💰</div><span class="stat-num" id="home-revenue">0</span><span class="stat-label">আজকের বুকিং</span></div>
+      </div>
+      <div class="hero-btns">
+        <button class="btn-hero-primary" onclick="showSection('booking')"><span>🚗</span> এখনই বুকিং করুন</button>
+        <button class="btn-hero-secondary" onclick="showSection('realtime')"><span>📡</span> লাইভ ম্যাপ দেখুন</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header-row">
+      <h2>📡 লাইভ পার্কিং ম্যাপ</h2>
+      <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <div class="mini-map" id="home-mini-map"></div>
+    <p class="text-muted" style="text-align:center;margin-top:.75rem">সবুজ = খালি | লাল = বুক্ড | যেকোনো ডিভাইস থেকে বুকিং করলে সবার স্ক্রিনে আপডেট হবে</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card" onclick="showSection('booking')"><div class="feature-bg f1"></div><div class="feature-icon">🤖</div><h3>AI ফেস লাইভনেস</h3><p>হাসি ও মাথা ঘোরানো দিয়ে রিয়েল ফেস প্রমাণ</p><span class="feature-arrow">→</span></div>
+    <div class="feature-card" onclick="showSection('booking')"><div class="feature-bg f2"></div><div class="feature-icon">💸</div><h3>ইনস্ট্যান্ট পেমেন্ট</h3><p>বিকাশ, নগদ, রকেট — সরাসরি মোবাইলে</p><span class="feature-arrow">→</span></div>
+    <div class="feature-card" onclick="showSection('realtime')"><div class="feature-bg f3"></div><div class="feature-icon">🗺️</div><h3>মাল্টি-ডিভাইস সিঙ্ক</h3><p>Admin ও User একসাথে লাইভ দেখবে</p><span class="feature-arrow">→</span></div>
+    <div class="feature-card" onclick="showSection('my-booking')"><div class="feature-bg f4"></div><div class="feature-icon">⏱️</div><h3>অটো-এক্সপায়ার</h3><p>মেয়াদ শেষ হলে স্বয়ংক্রিয়ভাবে স্লট খালি</p><span class="feature-arrow">→</span></div>
+  </div>
+
+  <div class="card qr-card">
+    <h2>📱 পার্কিং এন্ট্রি QR স্ক্যান</h2>
+    <p class="text-muted">নিচের QR কোড স্ক্যান করে সরাসরি বুকিং পেজে যান</p>
+    <div class="qr-wrap">
+      <div id="qr-display" class="qr-box"></div>
+      <div class="qr-info">
+        <div class="qr-info-row">📍 <strong>ঢাকা, গুলশান-১</strong></div>
+        <div class="qr-info-row">🕐 <strong>২৪/৭ খোলা</strong></div>
+        <div class="qr-info-row">🅿️ <strong>১২টি স্লট</strong></div>
+        <div class="qr-info-row">💳 <strong>ক্যাশলেস পেমেন্ট</strong></div>
+      </div>
+    </div>
+    <div class="btn-row center">
+      <button class="btn-secondary" onclick="generateDemoQR()">🔄 QR রিফ্রেশ</button>
+      <button class="btn-primary" onclick="showSection('booking')">বুকিং করুন →</button>
+    </div>
+  </div>
+</section>
+
+<!-- LOGIN SECTION -->
+<section id="login" class="section">
+  <div class="auth-container">
+    <div class="auth-left">
+      <div class="auth-hero">
+        <div style="font-size:4rem;margin-bottom:1rem">🅿️</div>
+        <h2>স্বাগতম!</h2>
+        <p>স্মার্ট পার্কিং সিস্টেমে লগইন করুন এবং সহজেই বুকিং করুন।</p>
+        <div class="auth-features">
+          <div class="auth-feat">✅ মাল্টি-ডিভাইস সিঙ্ক</div>
+          <div class="auth-feat">✅ AI ফেস ভেরিফিকেশন</div>
+          <div class="auth-feat">✅ ইনস্ট্যান্ট বুকিং</div>
+          <div class="auth-feat">✅ ডিজিটাল QR টিকিট</div>
+        </div>
+      </div>
+    </div>
+    <div class="auth-right">
+      <div class="card form-card">
+        <div class="tab-buttons">
+          <button class="tab-btn active" onclick="switchTab('login-tab', this)">🔐 লগইন</button>
+          <button class="tab-btn" onclick="switchTab('register-tab', this)">📝 রেজিস্ট্রেশন</button>
+        </div>
+
+        <div id="login-tab" class="tab-content active">
+          <div class="form-group">
+            <label>📱 ফোন নম্বর</label>
+            <input type="tel" id="login-phone" placeholder="01XXXXXXXXX" maxlength="11" oninput="validatePhone(this)"/>
+          </div>
+          <div class="form-group">
+            <label>🔑 পাসওয়ার্ড</label>
+            <div class="input-password-wrap">
+              <input type="password" id="login-pass" placeholder="পাসওয়ার্ড দিন"/>
+              <button class="toggle-pass" onclick="togglePass('login-pass')">👁️</button>
+            </div>
+          </div>
+          <button class="btn-primary full-width" onclick="doLogin()">লগইন করুন →</button>
+          <div class="divider-or"><span>অথবা</span></div>
+          <button class="btn-guest" onclick="guestLogin()">👤 গেস্ট হিসেবে ব্রাউজ করুন</button>
+          <p class="form-note">নতুন? <a href="#" onclick="switchTab('register-tab',null)">রেজিস্ট্রেশন করুন</a></p>
+        </div>
+
+        <div id="register-tab" class="tab-content">
+          <div class="form-group"><label>👤 পূর্ণ নাম</label><input type="text" id="reg-name" placeholder="আপনার নাম"/></div>
+          <div class="form-group"><label>📱 ফোন নম্বর</label><input type="tel" id="reg-phone" placeholder="01XXXXXXXXX" maxlength="11"/></div>
+          <div class="form-group"><label>📧 ইমেইল (ঐচ্ছিক)</label><input type="email" id="reg-email" placeholder="email@example.com"/></div>
+          <div class="form-group">
+            <label>🔑 পাসওয়ার্ড</label>
+            <div class="input-password-wrap">
+              <input type="password" id="reg-pass" placeholder="মিনিমাম ৬ অক্ষর"/>
+              <button class="toggle-pass" onclick="togglePass('reg-pass')">👁️</button>
+            </div>
+          </div>
+          <button class="btn-primary full-width" onclick="doRegister()">রেজিস্ট্রেশন করুন →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOOKING SECTION -->
+<section id="booking" class="section">
+  <div class="progress-track"><div class="progress-fill" id="booking-progress"></div></div>
+  <div class="booking-container">
+
+    <!-- Step 1 -->
+    <div id="step-1" class="booking-step active">
+      <div class="step-header">
+        <div class="step-indicator">
+          <div class="step-item active"><div class="step-circle">১</div><span>স্লট</span></div>
+          <div class="step-connector"></div>
+          <div class="step-item"><div class="step-circle">২</div><span>গাড়ি</span></div>
+          <div class="step-connector"></div>
+          <div class="step-item"><div class="step-circle">৩</div><span>পেমেন্ট</span></div>
+          <div class="step-connector"></div>
+          <div class="step-item"><div class="step-circle">৪</div><span>সম্পন্ন</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <h2>🅿️ পার্কিং স্লট নির্বাচন</h2>
+          <div class="zone-filter">
+            <button class="zone-btn active" onclick="filterZone('ALL', this)">সব</button>
+            <button class="zone-btn" onclick="filterZone('A', this)">A</button>
+            <button class="zone-btn" onclick="filterZone('B', this)">B</button>
+            <button class="zone-btn" onclick="filterZone('C', this)">C</button>
+          </div>
+        </div>
+        <div class="slot-legend">
+          <span><span class="slot-dot available"></span>খালি</span>
+          <span><span class="slot-dot booked"></span>বুক্ড</span>
+          <span><span class="slot-dot selected"></span>নির্বাচিত</span>
+        </div>
+        <div class="parking-layout" id="parking-grid"></div>
+      </div>
+
+      <div class="card slot-detail-card" id="slot-info-card" style="display:none">
+        <div class="slot-detail-header">
+          <div class="slot-detail-icon" id="slot-detail-icon">🚗</div>
+          <div><h3 id="selected-slot-name">-</h3><p id="slot-detail-desc" class="text-muted">-</p></div>
+          <div class="slot-price-tag"><span>৳</span><strong id="slot-rate-big">50</strong><small>/ঘণ্টা</small></div>
+        </div>
+        <div class="duration-selector">
+          <label>⏱️ কতক্ষণ পার্ক করবেন?</label>
+          <div class="duration-chips">
+            <button class="dur-chip active" onclick="setDuration(1, this)">১ ঘণ্টা</button>
+            <button class="dur-chip" onclick="setDuration(2, this)">২ ঘণ্টা</button>
+            <button class="dur-chip" onclick="setDuration(3, this)">৩ ঘণ্টা</button>
+            <button class="dur-chip" onclick="setDuration(4, this)">৪ ঘণ্টা</button>
+            <button class="dur-chip" onclick="setDuration(6, this)">৬ ঘণ্টা</button>
+            <button class="dur-chip" onclick="setDuration(12, this)">১২ ঘণ্টা</button>
+            <button class="dur-chip" onclick="setDuration(24, this)">২৪ ঘণ্টা</button>
+          </div>
+        </div>
+        <div class="price-breakdown">
+          <div class="price-row"><span>স্লট রেট</span><span id="pb-rate">৳ 50/ঘণ্টা</span></div>
+          <div class="price-row"><span>সময়কাল</span><span id="pb-dur">১ ঘণ্টা</span></div>
+          <div class="price-row total-row"><span>মোট</span><strong id="total-price">৳ 50</strong></div>
+        </div>
+        <button class="btn-primary full-width" onclick="goToStep(2)">পরবর্তী: গাড়ির তথ্য →</button>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="step-2" class="booking-step">
+      <div class="step-header">
+        <div class="step-indicator">
+          <div class="step-item done"><div class="step-circle">✓</div><span>স্লট</span></div>
+          <div class="step-connector done"></div>
+          <div class="step-item active"><div class="step-circle">২</div><span>গাড়ি</span></div>
+          <div class="step-connector"></div>
+          <div class="step-item"><div class="step-circle">৩</div><span>পেমেন্ট</span></div>
+          <div class="step-connector"></div>
+          <div class="step-item"><div class="step-circle">৪</div><span>সম্পন্ন</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🚗 গাড়ির তথ্য</h2>
+        <div class="form-grid-2">
+          <div class="form-group"><label>নম্বর প্লেট</label><input type="text" id="car-number" placeholder="DHAKA METRO KA 11-2345" style="text-transform:uppercase;font-size:1.1rem;font-weight:700;letter-spacing:.05em"/></div>
+          <div class="form-group">
+            <label>গাড়ির ধরন</label>
+            <select id="car-type">
+              <option value="car">🚗 সাধারণ গাড়ি</option>
+              <option value="suv">🚙 SUV / মাইক্রোবাস</option>
+              <option value="motorcycle">🏍️ মোটরসাইকেল</option>
+              <option value="truck">🚛 ট্রাক / পিকআপ</option>
+            </select>
+          </div>
+          <div class="form-group"><label>মালিকের নাম</label><input type="text" id="owner-name" placeholder="পূর্ণ নাম"/></div>
+          <div class="form-group"><label>ফোন নম্বর</label><input type="tel" id="owner-phone" placeholder="01XXXXXXXXX"/></div>
+        </div>
+      </div>
+
+      <div class="card face-card">
+        <div class="face-card-header">
+          <div><h2>🤖 AI ফেস ভেরিফিকেশন</h2><p class="text-muted">রিয়েল লাইভনেস ডিটেকশন — ছবি বা ভিডিও কাজ করবে না</p></div>
+          <div class="ai-badge">AI Powered</div>
+        </div>
+
+        <div class="face-container">
+          <div class="face-area" id="face-area">
+            <video id="face-video" autoplay muted playsinline></video>
+            <canvas id="face-canvas"></canvas>
+            <div class="face-guide-overlay">
+              <svg class="face-guide-svg" viewBox="0 0 300 225">
+                <ellipse cx="150" cy="112" rx="75" ry="90" fill="none" stroke="rgba(124,58,237,0.6)" stroke-width="3" stroke-dasharray="8,4">
+                  <animate attributeName="stroke-dashoffset" from="0" to="48" dur="2s" repeatCount="indefinite"/>
+                </ellipse>
+              </svg>
+            </div>
+            <div id="face-status" class="face-status">📷 ক্যামেরা চালু করুন</div>
+            <div class="face-corner tl"></div><div class="face-corner tr"></div>
+            <div class="face-corner bl"></div><div class="face-corner br"></div>
+          </div>
+
+          <div class="face-side">
+            <div id="liveness-instructions" class="liveness-panel" style="display:none">
+              <h4>লাইভনেস চেক</h4>
+              <div class="lv-step" id="lv-step-1"><div class="lv-icon">👀</div><div class="lv-text"><strong>ধাপ ১</strong><p>সোজা তাকান</p></div><div class="lv-check" id="lv-check-1">⭕</div></div>
+              <div class="lv-step" id="lv-step-2"><div class="lv-icon">😊</div><div class="lv-text"><strong>ধাপ ২</strong><p>হাসুন</p></div><div class="lv-check" id="lv-check-2">⭕</div></div>
+              <div class="lv-step" id="lv-step-3"><div class="lv-icon">👈</div><div class="lv-text"><strong>ধাপ ৩</strong><p>বামে মাথা ঘোরান</p></div><div class="lv-check" id="lv-check-3">⭕</div></div>
+              <div class="lv-progress-wrap"><div class="lv-progress-bar"><div class="lv-progress-fill" id="lv-progress-fill"></div></div><span id="lv-progress-text">০/৩ সম্পন্ন</span></div>
+            </div>
+
+            <div id="face-result" class="face-verified-panel" style="display:none">
+              <div class="verified-animation">✅</div><h4>ভেরিফাইড!</h4>
+              <img id="captured-face" src="" alt="Face"/><p>রিয়েল ফেস নিশ্চিত</p>
+              <button class="btn-secondary btn-sm" onclick="retryFace()">🔄 পুনরায় চেষ্টা</button>
+            </div>
+
+            <div id="face-idle" class="face-idle-panel">
+              <div style="font-size:3rem;margin-bottom:.75rem">📷</div>
+              <p>নিরাপদ প্রবেশের জন্য<br>ফেস ভেরিফিকেশন করুন</p>
+              <button class="btn-primary" onclick="startCamera()">ক্যামেরা চালু করুন</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="face-controls" id="face-controls" style="display:none">
+          <button class="btn-success" onclick="captureFace()" id="capture-btn" disabled>✅ ফেস ক্যাপচার করুন</button>
+          <button class="btn-secondary" onclick="stopCamera()">⏹️ বন্ধ করুন</button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-outline" onclick="goToStep(1)">← পেছনে</button>
+        <button class="btn-primary" onclick="goToStep(3)">পরবর্তী: পেমেন্ট →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="step-3" class="booking-step">
+      <div class="step-header">
+        <div class="step-indicator">
+          <div class="step-item done"><div class="step-circle">✓</div><span>স্লট</span></div>
+          <div class="step-connector done"></div>
+          <div class="step-item done"><div class="step-circle">✓</div><span>গাড়ি</span></div>
+          <div class="step-connector done"></div>
+          <div class="step-item active"><div class="step-circle">৩</div><span>পেমেন্ট</span></div>
+          <div class="step-connector"></div>
+          <div class="step-item"><div class="step-circle">৪</div><span>সম্পন্ন</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>💳 পেমেন্ট করুন</h2>
+        <div class="order-summary-card">
+          <div class="order-title">🧾 অর্ডার সারাংশ</div>
+          <div class="order-rows">
+            <div class="order-row"><span>📍 স্লট</span><strong id="summary-slot">-</strong></div>
+            <div class="order-row"><span>⏱️ সময়কাল</span><strong id="summary-duration">-</strong></div>
+            <div class="order-row"><span>🚗 গাড়ি</span><strong id="summary-car">-</strong></div>
+            <div class="order-row"><span>👤 মালিক</span><strong id="summary-owner">-</strong></div>
+            <div class="order-row total-order"><span>💰 মোট</span><strong id="summary-total">-</strong></div>
+          </div>
+        </div>
+
+        <div class="payment-tabs">
+          <div class="pay-tab-btn active" onclick="selectPayment('bkash', this)" id="ptab-bkash"><div class="ptab-logo bkash-logo-tab">b</div><span>বিকাশ</span></div>
+          <div class="pay-tab-btn" onclick="selectPayment('nagad', this)" id="ptab-nagad"><div class="ptab-logo nagad-logo-tab">N</div><span>নগদ</span></div>
+          <div class="pay-tab-btn" onclick="selectPayment('rocket', this)" id="ptab-rocket"><div class="ptab-logo rocket-logo-tab">R</div><span>রকেট</span></div>
+          <div class="pay-tab-btn" onclick="selectPayment('upay', this)" id="ptab-upay"><div class="ptab-logo upay-logo-tab">U</div><span>Upay</span></div>
+          <div class="pay-tab-btn" onclick="selectPayment('card', this)" id="ptab-card"><div class="ptab-logo card-logo-tab">💳</div><span>কার্ড</span></div>
+          <div class="pay-tab-btn" onclick="selectPayment('cash', this)" id="ptab-cash"><div class="ptab-logo cash-logo-tab">💵</div><span>ক্যাশ</span></div>
+        </div>
+
+        <div id="bkash-form" class="mobile-pay-form">
+          <div class="mf-header bkash-mf"><div class="mf-logo-big">bKash</div><div class="mf-info"><div class="mf-title">বিকাশ পেমেন্ট</div><div class="mf-sub">Send Money করুন নিচের নম্বরে</div></div></div>
+          <div class="target-number-card"><span class="tn-label">মার্চেন্ট নম্বর</span><span class="tn-number">01712-345678</span><button class="copy-btn" onclick="copyNumber('01712345678', this)">📋 কপি</button></div>
+          <div class="pay-amount-display">পাঠাতে হবে: <strong id="bkash-amount">৳ 0</strong></div>
+          <div class="how-to-steps">
+            <div class="how-step"><span class="hs-num">১</span><span>বিকাশ অ্যাপ খুলুন → <strong>Send Money</strong></span></div>
+            <div class="how-step"><span class="hs-num">২</span><span>নম্বর দিন: <strong>01712-345678</strong></span></div>
+            <div class="how-step"><span class="hs-num">৩</span><span>Amount দিন ও Reference তে বুকিং নম্বর লিখুন</span></div>
+            <div class="how-step"><span class="hs-num">৪</span><span>পেমেন্ট সম্পন্ন করুন — TrxID নিন</span></div>
+          </div>
+          <div class="form-group"><label>আপনার বিকাশ নম্বর</label><input type="tel" id="bkash-number" placeholder="01XXXXXXXXX"/></div>
+          <div class="form-group"><label>Transaction ID (TrxID)</label><input type="text" id="bkash-trxid" placeholder="8N6XXXXXXX" oninput="this.value=this.value.toUpperCase()"/></div>
+        </div>
+
+        <div id="nagad-form" class="mobile-pay-form" style="display:none">
+          <div class="mf-header nagad-mf"><div class="mf-logo-big">Nagad</div><div class="mf-info"><div class="mf-title">নগদ পেমেন্ট</div><div class="mf-sub">পাঠাও করুন নিচের নম্বরে</div></div></div>
+          <div class="target-number-card"><span class="tn-label">নগদ নম্বর</span><span class="tn-number">01712-345678</span><button class="copy-btn" onclick="copyNumber('01712345678', this)">📋 কপি</button></div>
+          <div class="pay-amount-display">পাঠাতে হবে: <strong id="nagad-amount">৳ 0</strong></div>
+          <div class="form-group"><label>নগদ নম্বর</label><input type="tel" id="nagad-number" placeholder="01XXXXXXXXX"/></div>
+          <div class="form-group"><label>Transaction ID</label><input type="text" id="nagad-trxid" placeholder="NAG-XXXXXXXX" oninput="this.value=this.value.toUpperCase()"/></div>
+        </div>
+
+        <div id="rocket-form" class="mobile-pay-form" style="display:none">
+          <div class="mf-header rocket-mf"><div class="mf-logo-big">🚀</div><div class="mf-info"><div class="mf-title">রকেট পেমেন্ট</div><div class="mf-sub">Dutch-Bangla Rocket</div></div></div>
+          <div class="target-number-card"><span class="tn-label">রকেট নম্বর</span><span class="tn-number">01712-3456781</span><button class="copy-btn" onclick="copyNumber('017123456781', this)">📋 কপি</button></div>
+          <div class="pay-amount-display">পাঠাতে হবে: <strong id="rocket-amount">৳ 0</strong></div>
+          <div class="form-group"><label>রকেট নম্বর</label><input type="tel" id="rocket-number" placeholder="01XXXXXXXXX"/></div>
+          <div class="form-group"><label>Transaction ID</label><input type="text" id="rocket-trxid" placeholder="RKT-XXXXXXXX" oninput="this.value=this.value.toUpperCase()"/></div>
+        </div>
+
+        <div id="upay-form" class="mobile-pay-form" style="display:none">
+          <div class="mf-header upay-mf"><div class="mf-logo-big">Upay</div><div class="mf-info"><div class="mf-title">Upay পেমেন্ট</div><div class="mf-sub">UCB Mobile Banking</div></div></div>
+          <div class="target-number-card"><span class="tn-label">Upay নম্বর</span><span class="tn-number">01712-345678</span><button class="copy-btn" onclick="copyNumber('01712345678', this)">📋 কপি</button></div>
+          <div class="pay-amount-display">পাঠাতে হবে: <strong id="upay-amount">৳ 0</strong></div>
+          <div class="form-group"><label>Upay নম্বর</label><input type="tel" id="upay-number" placeholder="01XXXXXXXXX"/></div>
+          <div class="form-group"><label>Transaction ID</label><input type="text" id="upay-trxid" placeholder="UPY-XXXXXXXX" oninput="this.value=this.value.toUpperCase()"/></div>
+        </div>
+
+        <div id="card-form" class="mobile-pay-form" style="display:none">
+          <div class="mf-header card-mf"><div class="mf-logo-big">💳</div><div class="mf-info"><div class="mf-title">কার্ড পেমেন্ট</div><div class="mf-sub">Visa / Mastercard / AMEX</div></div></div>
+          <div class="card-visual" id="card-visual">
+            <div class="card-chip">◾</div>
+            <div class="card-number-display" id="card-num-display">•••• •••• •••• ••••</div>
+            <div class="card-bottom"><div><div class="card-label">নাম</div><div id="card-name-display">CARDHOLDER</div></div><div><div class="card-label">মেয়াদ</div><div id="card-exp-display">MM/YY</div></div></div>
+          </div>
+          <div class="form-group"><label>কার্ড নম্বর</label><input type="text" id="card-number" placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatCard(this)"/></div>
+          <div class="form-row">
+            <div class="form-group"><label>মেয়াদ</label><input type="text" id="card-expiry" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)"/></div>
+            <div class="form-group"><label>CVV</label><input type="text" id="card-cvv" placeholder="•••" maxlength="3" type="password"/></div>
+          </div>
+          <div class="form-group"><label>কার্ড হোল্ডারের নাম</label><input type="text" id="card-name" placeholder="নাম লিখুন" oninput="document.getElementById('card-name-display').textContent=this.value.toUpperCase()||'CARDHOLDER'"/></div>
+        </div>
+
+        <div id="cash-form" class="mobile-pay-form" style="display:none">
+          <div class="cash-pay-card">
+            <div style="font-size:3rem;margin-bottom:1rem">💵</div><h3>ক্যাশ পেমেন্ট</h3>
+            <p>বুকিং কনফার্ম হবে। পার্কিং কাউন্টারে এসে QR কোড দেখিয়ে ক্যাশ দিন।</p>
+            <div class="cash-info-row"><span>📍 কাউন্টার লোকেশন</span><strong>গেট A, লেভেল ১</strong></div>
+            <div class="cash-info-row"><span>⏰ পেমেন্ট টাইম</span><strong>প্রবেশের আগে</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-outline" onclick="goToStep(2)">← পেছনে</button>
+        <button class="btn-pay" onclick="processPayment()" id="pay-confirm-btn"><span class="pay-btn-icon">💳</span><span id="pay-btn-text">পেমেন্ট নিশ্চিত করুন</span></button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div id="step-4" class="booking-step">
+      <div class="confirmation-wrapper">
+        <div class="confetti-wrap" id="confetti-wrap"></div>
+        <div class="success-card">
+          <div class="success-icon-big">🎉</div>
+          <h2>বুকিং সফল!</h2>
+          <p class="text-muted">আপনার পার্কিং স্লট নিশ্চিত করা হয়েছে</p>
+          <div class="conf-details">
+            <div class="conf-row"><span>🆔 বুকিং আইডি</span><strong id="conf-booking-id">-</strong></div>
+            <div class="conf-row"><span>🅿️ স্লট</span><strong id="conf-slot">-</strong></div>
+            <div class="conf-row"><span>🚗 গাড়ি</span><strong id="conf-car">-</strong></div>
+            <div class="conf-row"><span>⏱️ সময়কাল</span><strong id="conf-duration">-</strong></div>
+            <div class="conf-row"><span>💰 পেমেন্ট</span><strong id="conf-total">-</strong></div>
+            <div class="conf-row"><span>💳 পদ্ধতি</span><strong id="conf-payment">-</strong></div>
+            <div class="conf-row"><span>📅 তারিখ</span><strong id="conf-date">-</strong></div>
+          </div>
+          <div class="booking-timer-card" id="booking-timer-card">
+            <div class="timer-title">⏳ পার্কিং সময় শেষ হবে</div>
+            <div class="timer-display" id="booking-countdown">--:--:--</div>
+            <div class="timer-bar"><div class="timer-bar-fill" id="timer-bar-fill"></div></div>
+          </div>
+          <div class="qr-section">
+            <h3>🎫 আপনার QR এন্ট্রি পাস</h3>
+            <div class="qr-ticket"><div class="qr-ticket-header">Smart Parking BD</div><div id="booking-qr" class="booking-qr-code"></div><div class="qr-ticket-footer" id="qr-ticket-slot">Slot: -</div></div>
+            <div class="qr-actions">
+              <button class="btn-secondary" onclick="downloadQR()">⬇️ ডাউনলোড</button>
+              <button class="btn-secondary" onclick="shareBooking()">📤 শেয়ার</button>
+              <button class="btn-secondary" onclick="printBooking()">🖨️ প্রিন্ট</button>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn-primary" onclick="showSection('my-booking')">📋 আমার বুকিং</button>
+            <button class="btn-outline" onclick="newBooking()">+ নতুন বুকিং</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MY BOOKINGS -->
+<section id="my-booking" class="section">
+  <div class="card">
+    <div class="card-header-row">
+      <h2>📋 আমার বুকিং</h2>
+      <div class="booking-filter">
+        <button class="filter-btn active" onclick="filterBookings('all', this)">সব</button>
+        <button class="filter-btn" onclick="filterBookings('confirmed', this)">সক্রিয়</button>
+        <button class="filter-btn" onclick="filterBookings('cancelled', this)">বাতিল</button>
+      </div>
+    </div>
+    <div id="my-bookings-list" class="bookings-list"></div>
+  </div>
+</section>
+
+<!-- REALTIME MAP -->
+<section id="realtime" class="section">
+  <div class="card">
+    <div class="card-header-row">
+      <h2>📡 রিয়েল-টাইম পার্কিং ম্যাপ</h2>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+        <span class="text-muted" style="font-size:.82rem" id="last-updated">আপডেট: এখন</span>
+      </div>
+    </div>
+    <div class="realtime-stats">
+      <div class="rt-stat available-stat"><div class="rt-num" id="rt-available">0</div><div class="rt-label">খালি</div></div>
+      <div class="rt-stat booked-stat"><div class="rt-num" id="rt-booked">0</div><div class="rt-label">বুক্ড</div></div>
+      <div class="rt-stat occ-stat"><div class="rt-num" id="rt-occupancy">0%</div><div class="rt-label">অকুপেন্সি</div></div>
+    </div>
+    <div class="parking-map-view">
+      <div class="map-road"><span>← প্রবেশ পথ</span><span>বাহির →</span></div>
+      <div class="map-zones">
+        <div class="map-zone"><div class="zone-label">Zone A</div><div class="zone-slots" id="rt-zone-a"></div></div>
+        <div class="map-divider">🚦</div>
+        <div class="map-zone"><div class="zone-label">Zone B</div><div class="zone-slots" id="rt-zone-b"></div></div>
+        <div class="map-divider">🚦</div>
+        <div class="map-zone"><div class="zone-label">Zone C</div><div class="zone-slots" id="rt-zone-c"></div></div>
+      </div>
+      <div class="map-legend"><span><span class="ml-dot avail"></span>খালি</span><span><span class="ml-dot book"></span>বুক্ড</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ADMIN -->
+<section id="admin" class="section">
+  <div id="admin-login" class="card form-card">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="font-size:3rem">🔐</div><h2>অ্যাডমিন প্যানেল</h2><p class="text-muted">Smart Parking BD — Admin Access</p>
+    </div>
+    <div class="form-group"><label>ইউজারনেম</label><input type="text" id="admin-user" placeholder="admin"/></div>
+    <div class="form-group"><label>পাসওয়ার্ড</label><input type="password" id="admin-pass" placeholder="পাসওয়ার্ড"/></div>
+    <button class="btn-primary full-width" onclick="adminLogin()">অ্যাডমিন লগইন →</button>
+    <p class="text-muted" style="text-align:center;margin-top:.75rem;font-size:.82rem">ডেমো: <code>admin</code> / <code>admin123</code></p>
+  </div>
+
+  <div id="admin-dashboard" style="display:none">
+    <div class="admin-header">
+      <h2>📊 অ্যাডমিন ড্যাশবোর্ড</h2>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn-small" onclick="exportBookings()">📊 Export CSV</button>
+        <button class="btn-small danger" onclick="adminLogout()">লগআউট</button>
+      </div>
+    </div>
+    <div class="admin-stats">
+      <div class="stat-card purple"><span class="stat-icon">🅿️</span><div><strong id="admin-total">12</strong><p>মোট স্লট</p></div></div>
+      <div class="stat-card teal"><span class="stat-icon">✅</span><div><strong id="admin-available">8</strong><p>খালি স্লট</p></div></div>
+      <div class="stat-card coral"><span class="stat-icon">🚗</span><div><strong id="admin-booked">4</strong><p>বুক্ড</p></div></div>
+      <div class="stat-card amber"><span class="stat-icon">💰</span><div><strong id="admin-revenue">৳ 0</strong><p>আজকের আয়</p></div></div>
+      <div class="stat-card green"><span class="stat-icon">📋</span><div><strong id="admin-total-bookings">0</strong><p>মোট বুকিং</p></div></div>
+      <div class="stat-card indigo"><span class="stat-icon">👥</span><div><strong id="admin-users">0</strong><p>মোট ইউজার</p></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header-row">
+        <h2>🅿️ স্লট ম্যানেজমেন্ট</h2>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn-small" onclick="resetAllSlots()">🔄 সব খালি</button>
+        </div>
+      </div>
+      <div class="parking-layout admin-grid" id="admin-parking-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-header-row">
+        <h2>📋 বুকিং লিস্ট</h2>
+        <input type="text" id="admin-search" placeholder="🔍 খুঁজুন..." class="admin-search" oninput="searchBookings(this.value)"/>
+      </div>
+      <div id="admin-bookings-table" class="admin-table-wrap"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<!-- LOADING -->
+<div id="loading" class="loading-overlay" style="display:none">
+  <div class="loading-box">
+    <div class="loading-ring"></div>
+    <p id="loading-text">প্রক্রিয়া করা হচ্ছে...</p>
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
